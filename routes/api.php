@@ -248,13 +248,35 @@ Route::get('categories-list', 'App\Http\Controllers\CustomerController@categorie
 Route::get('subcategories-list/{category_id}', 'App\Http\Controllers\CustomerController@subcategoriesList');
 Route::get('brands-list', 'App\Http\Controllers\CustomerController@brandsList');
 
-
-
 Route::post('vendor/create-product', 'App\Http\Controllers\VendorController@createProduct');
-
 
 Route::post('/create-product-update',[\App\Http\Controllers\VendorController::class,'create_product_update']);
 
 Route::post('/create-product-update',[\App\Http\Controllers\VendorController::class,'create_product_update']);
 Route::post('/get-Imag-Product',[App\Http\Controllers\VendorController::class,'update']);
 
+Route::get('/get-name-atr/{id}',[App\Http\Controllers\VendorController::class,'get_atr']);
+Route::get('/get-attr-color/{option_id}',[App\Http\Controllers\VendorController::class,'get_atr_col']);
+
+Route::post('/add-to-option',[App\Http\Controllers\VendorController::class,'post_to_option']);
+
+Route::get('/remove-attr/{option_id}',[App\Http\Controllers\VendorController::class,'removeAttr']);
+
+Route::post('/edit-attr',[App\Http\Controllers\VendorController::class,'edit_attr']);
+
+Route::get('select-variant-col/{product_id}',[\App\Http\Controllers\VendorController::class,'select_to_variant_col']);
+
+Route::get('select-variant/{product_id}',[\App\Http\Controllers\VendorController::class,'select_to_variant']);
+
+Route::post('create-variant',[App\Http\Controllers\VendorController::class,'create_new_variant']);
+Route::get('show-variant-table/{product_id}',[App\Http\Controllers\VendorController::class,'atr_table']);
+
+Route::post('show-edit',[App\Http\Controllers\VendorController::class,'show_edit']);
+Route::post('show-delete',[App\Http\Controllers\VendorController::class,'show_delete']);
+
+Route::get('chang-status/{sku_id}',[App\Http\Controllers\VendorController::class,'chang_status']);
+Route::post('remove-variant',[App\Http\Controllers\VendorController::class,'remove_variatn']);
+Route::get('show-edit-table/{sku_id}',[App\Http\Controllers\VendorController::class,'show_edit_table']);
+Route::post('show-table-edit',[App\Http\Controllers\VendorController::class,'show_edit_variant']);
+
+Route::get('destroy-image/{id}',[App\Http\Controllers\VendorController::class,'destroyImage']);

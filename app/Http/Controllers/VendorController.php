@@ -4,6 +4,11 @@ namespace App\Http\Controllers;
 use App\Helpers\Folders;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\MOption;
+use App\Models\MOptionValue;
+use App\Models\MProductOption;
+use App\Models\MProductVariant;
+use App\Models\MVariantValue;
 use App\Models\Product;
 use App\Models\ProductImage;
 use Illuminate\Http\Request;
@@ -20,7 +25,9 @@ use App\Models\DeliveryPartner;
 use App\Models\OrderProduct;
 use App\Models\ProductOptionValue;
 use App\Models\VendorTax;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Validator;
 use Kreait\Firebase;
 use Kreait\Firebase\Factory;
@@ -1687,13 +1694,407 @@ class VendorController extends Controller
 
     }
 
-    public function update(Request $request)
+//    public function update(Request $request)
+//    {
+//
+//        return $response= Http::post('http://admin.bissbuy.uz/api/getImages',[
+//            'data'=>$request->all(),
+//        ]);
+//    }
+
+
+
+
+    public function get_atr($product_id)
     {
 
-        return $response= Http::post('http://admin.bissbuy.uz/api/getImages',[
-            'data'=>$request->all(),
+        $product=Product::find($product_id);
+        $attr_id=DB::table('attribute_category')->where('category_id',$product->subcategory_id)->pluck('attribute_id');
+        $m_option=DB::table('m_options')->whereIn('id',$attr_id)->get();
+
+        return response()->json([
+            'data'=> ['atributes'=>$m_option,'product_id'=>$product_id],
+            'message'=>'success',
+            'status'=>1
+        ]);
+
+    }
+
+    public function get_atr_col($option_id)
+    {
+        $mo_values=DB::table('m_option_values')->where('option_id',$option_id)->get();
+        return response()->json([
+            'data'=>$mo_values,
+            'message'=>'success',
+            'status'=>'1',
         ]);
     }
+
+    public function post_to_option(Request $request)
+    {
+        //   return $request->value_ids;
+        DB::table('m_product_options')->insert([
+            'product_id' => $request->product_id,
+            'option_id' =>$request->option_id,
+            'values_ids' =>$request->value_ids,
+        ]);
+
+
+        $options=MProductOption::where('product_id',$request->product_id)->get();
+
+        $i=0;
+        $a=0;
+        //          $value_name=[];
+        $option_name=[];
+
+        foreach ($options as $option)
+        {
+            $value_name=[];
+            foreach (json_decode($option->values_ids) as $value_id)
+            {
+                $value_name['option_id']=MOptionValue::find($value_id)->option_id;
+//                   return $value_id;
+                $value_name['value'.$a]=MOptionValue::find($value_id)->value_name;
+                $a++;
+
+            }
+
+            $remov_id=$option->id;
+            $option_name[$option->option->option_name]=$value_name;
+            $i++;
+        }
+
+        return response()->json([
+            'attributes'=> $option_name,
+            'product_id'=>$request->product_id,
+            'remov'=>$option->id,
+            'message'=>'success',
+            'status'=>1,
+        ]);
+
+
+    }
+
+
+    public function select_to_variant_col($product_id)
+    {
+        $parent = MProductOption::where('product_id', $product_id)->first();
+        if ($parent)
+        {
+            $values = json_decode($parent->values_ids);
+            $option= MOptionValue::whereIn('id', $values)->pluck('value_name', 'id')->toArray();
+            $option_name=$parent->option->option_name;
+
+        }
+
+        return response()->json([
+            'parent_list'=>['option_name'=>$option_name,'option'=>$option,'parent_opion_id'=>$parent->option_id],
+            'message'=>'success',
+            'status'=>1
+        ]);
+
+    }
+
+
+
+    public function select_to_variant($product_id)
+    {
+        $child = MProductOption::where('product_id', $product_id)->latest('id')->first();
+
+        if (isset($child) && $child->id != MProductOption::where('product_id', $product_id)->first()->id)
+        {
+
+            $values = json_decode($child->values_ids);
+            $option_child = MOptionValue::whereIn('id', $values)->pluck('value_name', 'id')->toArray();
+            $option_name=$child->option->option_name;
+        }
+        return response()->json([
+            'child_list'=>['option_name'=>$option_name,'option'=>$option_child,'child_option_id'=>$child->option_id],
+            'message'=>'success',
+            'status'=>1
+        ]);
+
+    }
+
+
+
+    public function create_new_variant(Request $request)
+
+    {
+        $validator = Validator::make($request->all(), [
+            'parent_option_id' => 'required',
+            'child_option_id' => 'sometimes',
+            'price' => 'required',
+//            'object.image' => 'sometimes',
+            'short_description' => 'sometimes'
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError($validator->errors());
+        }
+
+        $variant = MProductVariant::create([
+            'product_id' => $request->product_id,
+            'sku_id' => Str::uuid(),
+        ]);
+        return isset($request->child_option_id);
+        if (isset($request->child_option_id)) {
+            MVariantValue::create([
+                'product_id' => $request->product_id,
+                'variant_id' => $variant->sku_id,
+                'option_id' => $request->parent_option_id,
+                'value_id' => $request->parent_value_id,
+            ]);
+
+            $imagable = MVariantValue::create([
+                'product_id' => $request->product_id,
+                'variant_id' => $variant->sku_id,
+                'option_id' => $request->child_option_id,
+                'value_id' => $request->child_value_id,
+                'price' => $request->price,
+                'status' => 1,
+                'short_description' => isset($request->short_description) ? $request->short_description : null
+            ]);
+        } else {
+
+            $imagable = MVariantValue::create([
+                'product_id' => $request->product_id,
+                'variant_id' => $variant->sku_id,
+                'option_id' => $request->parent_option_id,
+                'value_id' => $request->parent_value_id,
+                'price' => $request->price,
+                'status' => 1,
+                'short_description' => isset($request->short_description) ?$request->short_description : null
+            ]);
+        }
+
+        return response()->json([
+            'sku_id'=>$variant->sku_id,
+            'message'=>'success',
+            'status'=>1,
+        ]);
+
+    }
+
+
+
+
+
+
+
+
+
+    public function edit_attr(Request $request)
+    {
+
+        MProductOption::where('product_id', $request->product_id)->where('option_id', $request->option_id)->update([
+            'values_ids' => json_encode($request->values_ids),
+        ]);
+
+        return response()->json([
+            'message'=>'Category was update successfully',
+            'status'=>1
+        ]);
+    }
+
+
+    public function atr_table($product_id)
+    {
+
+
+
+        $parent = MProductOption::where('product_id', $product_id)->first();
+        if ($parent)
+        {
+
+            $values = json_decode($parent->values_ids);
+            $option= MOptionValue::whereIn('id', $values)->pluck('value_name', 'id')->toArray();
+            $parent_name=$parent->option->option_name;
+
+        }
+        $child_name=null;
+        $child = MProductOption::where('product_id', $product_id)->latest('id')->first();
+
+        if (isset($child) && $child->id != MProductOption::where('product_id', $product_id)->first()->id) {
+
+            $values = json_decode($child->values_ids);
+            $option_child = MOptionValue::whereIn('id', $values)->pluck('value_name', 'id')->toArray();
+            $child_name = $child->option->option_name;
+
+        }
+
+
+
+        $parents=[];
+        $p=0;
+        $list_prod_variants = \App\Models\MProductVariant::where('product_id', $product_id)->orderBy('order_number')->get();
+//
+        foreach ($list_prod_variants as $product_variant)
+        {
+            $parent = \App\Models\MVariantValue::where('product_id', $product_id)->where('variant_id', $product_variant->sku_id)->first();
+            $child = \App\Models\MVariantValue::where('product_id', $product_id)->latest('id')->where('variant_id', $product_variant->sku_id)->first();
+            $parent_option = \App\Models\MOption::find($parent->option_id);
+            $parent_value = \App\Models\MOptionValue::find($parent->value_id);
+            $child_option = \App\Models\MOption::find($child->option_id);
+            $child_value = \App\Models\MOptionValue::find($child->value_id);
+//
+            $p++;
+            $parents[]=['list'=>$child,'name'=>$child_value->value_name,'name1'=>$parent_value->value_name];
+        }
+
+
+
+        return response()->json([
+            'data' => $parents,
+            'child_list'=>['child_option_name'=>$child_name,'child'=>$child],
+            'parent_list'=>['option'=>$option,'parent_option_name' =>$parent_name,'parent_opion_id'=>$parent->option_id],
+            'message' => 'success',
+            'status' => 1,
+        ]);
+
+
+    }
+
+
+
+
+    public function show_edit(Request $request)
+
+    {
+//          $request->values_ids=["14"];
+        MProductOption::where('product_id', $request->product_id)->where('option_id', $request->option_id)->update([
+            'values_ids' => $request->values_ids,
+        ]);
+
+        return response()->json([
+            'message'=>'success',
+            'status'=>1
+        ]);
+    }
+
+
+    public function show_delete(Request $request)
+
+    {
+
+        MProductOption::where('product_id', $request->product_id)->where('option_id', $request->option_id)->delete();
+        return response()->json([
+            'message'=>'success',
+            'status'=>1
+        ]);
+    }
+
+
+    public function chang_status($sku_id)
+    {
+//        return $sku_id;
+        $vv = MVariantValue::where('variant_id',$sku_id)->latest('id')->first();
+        $status = $vv->status == 1 ? 2 : 1;
+        $vv->status = $status;
+        $vv->save();
+
+        return response()->json([
+            'message'=>'success',
+            'status'=>1
+        ]);
+    }
+
+    public function remove_variatn(Request $request)
+    {
+        MProductVariant::where('sku_id', $request->variant_sku)->where('product_id', $request->product_id)->delete();
+        MVariantValue::where('variant_id', $request->variant_sku)->where('product_id', $request->product_id)->delete();
+
+        return response()->json([
+            'message'=>'success',
+            'status'=>1
+        ]);
+
+    }
+
+
+
+
+    public function show_edit_table($sku_id)
+    {
+        $variants=MVariantValue::where('variant_id', $sku_id)->get();
+
+        if ($variants->count()==2)
+        {
+            $first = $variants[0];
+            $second = $variants[1];
+            $data = [
+                'parent' => [
+                    'option_name' => MOption::find($first->option_id)->option_name,
+                    'value_name' => MOptionValue::find($first->value_id)->value_name,
+                ],
+                'child' => [
+                    'option_name' => MOption::find($second->option_id)->option_name,
+                    'value_name' => MOptionValue::find($second->value_id)->value_name,
+                    'images' => ProductImage::where('sku_id', $sku_id)->get(),
+                    'price' => $second->price,
+                    'status' => $second->status,
+                    'short_description' => $second->short_description,
+                ]
+            ];
+        }
+        else
+        {
+            $first = $variants[0];
+            $data = [
+                'parent' => [
+                    'option_name' => MOption::find($first->option_id)->option_name,
+                    'value_name' => MOptionValue::find($first->value_id)->value_name,
+                    'images' => ProductImage::where('sku_id', $sku_id)->get(),
+                    'price' => $first->price,
+                    'short_description' => $first->short_description,
+                ]
+            ];
+        }
+        return response()->json([
+            'data'=>$data,
+            'sku_id'=>$sku_id,
+            'product_id'=>MVariantValue::where('variant_id', $sku_id)->first()->product_id,
+            'message'=>'success',
+            'status'=>1,
+        ]);
+
+    }
+
+
+    public function show_edit_variant(Request $request)
+    {
+        $variants=MVariantValue::where('variant_id', $request->sku_id)->latest('id')->first()->update([
+            'short_description'=>$request->short_description,
+            'price'=>$request->price,
+        ]);
+
+
+        return response()->json([
+            'message'=>'success',
+            'status'=>1,
+        ]);
+    }
+
+
+    public function destroyImage($id)
+    {
+        $image = ProductImage::find($id);
+        $file = public_path() . '/upload/' . $image->product_image;
+        if (File::exists($file)) {
+            File::delete($file);
+        }
+
+        $image->delete();
+        return response()->json([
+            'message'=>'success',
+            'status'=>1
+        ]);
+
+
+    }
+
+
+
 
 
 

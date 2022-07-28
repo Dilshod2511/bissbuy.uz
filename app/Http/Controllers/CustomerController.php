@@ -18,7 +18,7 @@ namespace App\Http\Controllers;
     use App\Models\PaymentMode;
     use App\Models\PromoCode;
     use App\Models\Brand;
-    
+
     use App\Models\ProductReview;
     use App\Models\CustomerWalletHistory;
     use Validator;
@@ -145,7 +145,7 @@ use Illuminate\Support\Facades\Hash;
             $validator = Validator::make($input, [
                 'first_name' => 'required',
                 'phone_number' => 'required|numeric|unique:customers,phone_number,'.$id,
-               
+
             ]);
 
             if ($validator->fails()) {
@@ -186,7 +186,7 @@ use Illuminate\Support\Facades\Hash;
             $shared_count = CustomerSharedProduct::where('customer_id', $customer->id)->count();
             $delivered = Order::where('customer_id', $customer->id)->where('status', 4)->count();
             $cancelled = Order::where('customer_id', $customer->id)->where('status', 5)->count();
-          
+
             if(is_object($customer)){
                 $result = [
                     $customer,
@@ -302,8 +302,8 @@ use Illuminate\Support\Facades\Hash;
             }
 
             $password =  \Hash::make($input['password']);
-            
-            
+
+
             if(Customer::where('phone_number',$input['phone_number'])->update([
                 'password' => $password,
                 'fcm_token' => $request->fcm_token
@@ -369,16 +369,16 @@ use Illuminate\Support\Facades\Hash;
         }
 
         public function get_categories($category_name = null){
-            
+
            if($category_name != null){
-               
+
                  $data = Category::where('parent_id',NULL)->where('category_name', 'like', '%' . $category_name . '%')->get();
-               
+
            }else{
                 $data = Category::where('parent_id',NULL)->get();
            }
-           
-           
+
+
             foreach($data as $key => $value){
                 $data[$key]->items = Category::where('parent_id',$value->id)->get();
             }
@@ -432,7 +432,7 @@ use Illuminate\Support\Facades\Hash;
                 return $this->sendError($validator->errors());
             }
 
-            
+
 
             if(!CustomerViewedProduct::where('customer_id', $request->customer_id)->where('product_id', $request->product_id)->exists()){
                  $view = Product::where('id',$input['product_id'])->value('total_view');
@@ -442,7 +442,7 @@ use Illuminate\Support\Facades\Hash;
                 }
             }
 
-           
+
             return response()->json([
                 "message" => 'Success',
                 "status" => 1
@@ -544,7 +544,7 @@ use Illuminate\Support\Facades\Hash;
                 ->where('products.id',$input['product_id'])
                 ->select('products.*', 'brands.brand_name','brands.brand_image', 'vendors.vendor_name', 'categories.category_name', 'vendors.profile_picture')
                 ->first();
-                
+
             $product->brand_image = 'http://bissbuy.uz/upload/' . $product->brand_image;
             //$product = Product::where('id',$input['product_id'])->first();
             // $favourite = CustomerFavouriteProduct::where('product_id',$input['product_id'])->where('customer_id',$input['customer_id'])->first();
@@ -569,9 +569,9 @@ use Illuminate\Support\Facades\Hash;
             //                         ->join('product_options','product_options.id','=','product_attributes.option_id')
             //                         ->select('product_attributes.*','product_options.option_name','product_options.option_code')
             //                         ->where('product_attributes.product_id',$input['product_id'])->get();
-           
-        
-        
+
+
+
             if($product){
                 $product->option_values = $option_values;
                 $product->cover_image = Product::find($product->id)->cover_image;
@@ -960,7 +960,7 @@ use Illuminate\Support\Facades\Hash;
             Product::find($request->product_id)->increment('total_comment');
 
             $input['order_id'] = 0;
-    
+
             $review = \App\Models\ProductReview::create($input);
             return response()->json([
                 "message" => 'Success',
@@ -1005,16 +1005,16 @@ use Illuminate\Support\Facades\Hash;
 
         public function top_like()
         {
-           
+
             $liked =  \App\Models\Product::where('status',1)->with('brand', 'images')->orderBy('total_like', 'desc')->where('total_like', '>', 0)->select('id', 'total_view', 'total_like', 'total_sharing', 'total_view', 'product_name', 'cover_image', 'product_price', 'total_comment', 'brand_id', 'vendor_id', 'is_discount', 'discount_price', 'discount_from', 'discount_to','discount_percent')->paginate(15);
-        
+
             foreach($liked as $like)
             {
                 $like->product_price == null ? \DB::table('m_variants_values')->where('product_id', $like->id)->whereNotNull('price')->first()->price : $like->product_price;
-                
+
             }
-        
-        
+
+
             $result = [
                 'most_liked' => $liked
             ];
@@ -1028,15 +1028,15 @@ use Illuminate\Support\Facades\Hash;
 
         public function top_view()
         {
-           
+
             $viewed =  \App\Models\Product::where('status',1)->orderBy('total_view', 'desc')->with('brand', 'images')->where('total_view', '>', 0)->select('id', 'total_view', 'total_like', 'total_sharing', 'total_view', 'product_name', 'cover_image', 'product_price', 'total_comment', 'brand_id', 'vendor_id', 'is_discount', 'discount_price', 'discount_from', 'discount_to','discount_percent')->paginate(15);
-        
+
              foreach($viewed as $like)
                 {
                     $like->product_price == null ? \DB::table('m_variants_values')->where('product_id', $like->id)->whereNotNull('price')->first()->price : $like->product_price;
-                    
+
                 }
-            
+
             $result = [
                 'most_viewed' => $viewed
             ];
@@ -1050,14 +1050,14 @@ use Illuminate\Support\Facades\Hash;
 
         public function top_share()
         {
-           
+
             $shared =  \App\Models\Product::where('status',1)->orderBy('total_sharing', 'desc')->with('brand', 'images')->where('total_sharing', '>', 0)->select('id', 'total_view', 'total_like', 'total_sharing', 'total_view', 'product_name', 'cover_image', 'product_price', 'total_comment', 'brand_id', 'vendor_id', 'is_discount', 'discount_price', 'discount_from', 'discount_to','discount_percent')->paginate(15);
-        
+
             foreach($shared as $like)
             {
                 $like->product_price == null ? \DB::table('m_variants_values')->where('product_id', $like->id)->whereNotNull('price')->first()->price : $like->product_price;
             }
-                
+
             $result = [
                 'most_shared' => $shared
             ];
@@ -1085,14 +1085,14 @@ use Illuminate\Support\Facades\Hash;
                 } else {
                     $image = '';
                 }
-    
-        
+
+
                 $prods = [];
-                
+
                 foreach($orderr->products as $prod)
                 {
                     $pr = Product::find($prod->product_id);
-                
+
                      if($pr){
                         $prods [] = [
                             "id" => $prod->id,
@@ -1107,10 +1107,10 @@ use Illuminate\Support\Facades\Hash;
                             "brand" => \App\Models\Brand::find($pr->brand_id)
                            ];
                    }
-                   
+
 
                 }
-                
+
                 $business_order_result[] = [
                     'total' => $order->total,
                     'id' => $order->id,
@@ -1124,21 +1124,21 @@ use Illuminate\Support\Facades\Hash;
             $pending_order = Order::where('customer_id', $customer_id)->whereNotIn('status', [5,6])->sum('total');
             $completed_order = Order::where('customer_id', $customer_id)->whereIn('status', [6])->sum('total');
             $orders_list = Order::with(['vendor', 'products'])->whereNotIn('status', [5,6])->where('customer_id', $customer_id)->get();
-            
-            
+
+
             $orders_list_archive = Order::with(['vendor', 'products'])->whereIn('status', [6])->where('customer_id', $customer_id)->get();
 
 
-        
+
             foreach ($orders_list as $orderr) {
                 if ($orderr->products->count() > 0) {
                     $image =  $orderr->products->first()->product_image;
                 } else {
                     $image = '';
                 }
-    
+
                 $prods = [];
-                
+
                 foreach($orderr->products as $prod)
                 {
                     $pr = Product::find($prod->product_id);
@@ -1157,7 +1157,7 @@ use Illuminate\Support\Facades\Hash;
                            ];
                    }
                 }
-    
+
                 $orders_result[] = [
                     'total' => $orderr->total,
                     'id' => $orderr->id,
@@ -1167,8 +1167,8 @@ use Illuminate\Support\Facades\Hash;
                     'products' => $prods
                 ];
             }
-            
-            
+
+
              foreach ($orders_list_archive as $orderr) {
                 if ($orderr->products->count() > 0) {
                     $image =  $orderr->products->first()->product_image;
@@ -1210,7 +1210,7 @@ use Illuminate\Support\Facades\Hash;
                     "status" => 1
                 ]);
         }
-        
+
 
 
 
@@ -1221,7 +1221,7 @@ use Illuminate\Support\Facades\Hash;
             $products = Product::active()->with('images')->where('vendor_id', $vendor_id)->get();
 
            // $vendor->store_image = url('/upload/' . $vendor->store_image);
-            
+
             $total_liked = Product::active()->where('vendor_id', $vendor_id)->sum('total_like');
             $total_view  = Product::active()->where('vendor_id', $vendor_id)->sum('total_view');
             $total_share = Product::active()->where('vendor_id', $vendor_id)->sum('total_sharing');
@@ -1239,9 +1239,9 @@ use Illuminate\Support\Facades\Hash;
                 "result" => $result,
                 "status" => 1
             ]);
-           
-            
-           
+
+
+
         }
 
 
@@ -1269,7 +1269,7 @@ use Illuminate\Support\Facades\Hash;
         }
 
 
-        
+
         public function cancel_order(Request $request)
         {
             $input = $request->all();
@@ -1281,15 +1281,15 @@ use Illuminate\Support\Facades\Hash;
             if ($validator->fails()) {
                 return $this->sendError($validator->errors());
             }
-    
+
             Order::where('id', $input['order_id'])->update(['status' => $input['status']]);
-    
+
             return response()->json([
                 "message" => 'Success',
                 "status" => 1
             ]);
         }
-        
+
         public function delete_order(Request $request)
         {
             $input = $request->all();
@@ -1300,18 +1300,18 @@ use Illuminate\Support\Facades\Hash;
             if ($validator->fails()) {
                 return $this->sendError($validator->errors());
             }
-    
+
            // Order::where('id', $input['order_id'])->update(['status' =>7]);
-    
+
            Order::where('id', $input['order_id'])->delete();
            OrderProduct::where('order_id', $input['order_id'])->delete();
-            
+
             return response()->json([
                 "message" => 'Success',
                 "status" => 1
             ]);
         }
-        
+
         public function logout(Request $request)
         {
             $input = $request->all();
@@ -1323,17 +1323,17 @@ use Illuminate\Support\Facades\Hash;
             if ($validator->fails()) {
                 return $this->sendError($validator->errors());
             }
-            
+
             $customer = Customer::where('id',$input['customer_id'])->first();
             $customer->fcm_token = null;
             $customer->save();
-            
+
             return response()->json([
                 "message" => 'Success',
                 "status" => 1
             ]);
         }
-        
+
         public function addToWishlist(Request $request)
         {
             $input = $request->all();
@@ -1345,7 +1345,7 @@ use Illuminate\Support\Facades\Hash;
             if ($validator->fails()) {
                 return $this->sendError($validator->errors());
             }
-            
+
             if(!Wishlist::where('customer_id',$input['customer_id'])->where('product_id',$input['product_id'])->exists()){
                  Wishlist::create([
                      'customer_id' => $input['customer_id'],
@@ -1354,13 +1354,13 @@ use Illuminate\Support\Facades\Hash;
             }else{
                 Wishlist::where('customer_id',$input['customer_id'])->where('product_id',$input['product_id'])->delete();
             }
-           
+
             return response()->json([
                 "message" => 'Success',
                 "status" => 1
             ]);
         }
-        
+
         public function checkWishlist(Request $request)
         {
             $input = $request->all();
@@ -1372,13 +1372,13 @@ use Illuminate\Support\Facades\Hash;
             if ($validator->fails()) {
                 return $this->sendError($validator->errors());
             }
-           
+
             return response()->json([
                 "message" => Wishlist::where('customer_id',$input['customer_id'])->where('product_id',$input['product_id'])->exists(),
                 "status" => 1
             ]);
         }
-        
+
         public function getWishlist(Request $request)
         {
             $input = $request->all();
@@ -1389,9 +1389,9 @@ use Illuminate\Support\Facades\Hash;
             if ($validator->fails()) {
                 return $this->sendError($validator->errors());
             }
-            
+
             $prod_ids = Wishlist::where('customer_id',$input['customer_id'])->orderByDesc('id')->pluck('product_id');
-            
+
 
             $prods = Product::with(['brand', 'images', 'vendor'])->whereIn('id', $prod_ids)->get();
             $result = [];
@@ -1413,14 +1413,14 @@ use Illuminate\Support\Facades\Hash;
 			'vendor' => Vendor::where('id', $prod->vendor_id)->select('id', 'vendor_name', 'store_image')->first()
                 ];
             }
-            
+
              return response()->json([
                 "message" =>$result,
                 "status" => 1
             ]);
-            
+
         }
-        
+
         public function resetPassword(Request $request)
         {
             $input = $request->all();
@@ -1433,36 +1433,36 @@ use Illuminate\Support\Facades\Hash;
             if ($validator->fails()) {
                 return $this->sendError($validator->errors());
             }
-            
+
             $customer = Customer::find($input['customer_id']);
-            
+
             if(!$customer)
                return response()->json([
                 "message" => 'customer not found',
                 "status" => 0
             ]);
-            
+
            if(\Hash::check($input['old_password'], $customer->password)){
                $customer->password = \Hash::make($input['new_password']);
                $customer->save();
-              
+
                return response()->json([
                 "message" =>'success',
                 "status" => 1
             ]);
            }else{
-             
+
                 return response()->json([
                 "message" => 'password does not match',
                 "status" => 0
             ]);
-        
+
            }
         }
-        
+
         public function top_sale()
         {
-	
+
             $shared = \App\Models\Product::where('status',1)->whereDate('discount_from','<=', now())->with('brand', 'images')->whereDate('discount_to','>=', now())->whereNotNull('discount_price')->select('discount_price','discount_from','discount_to', 'discount_percent', 'id', 'total_view', 'total_like', 'total_sharing', 'total_view', 'product_name', 'cover_image', 'product_price', 'total_comment', 'brand_id', 'vendor_id')->paginate(10);
             //$shared = \App\Models\Product::where('status',1)->whereNotNull('discount_price')->take(10)->get(['id', 'discount_price','discount_from','discount_to', 'product_name', 'cover_image']);
             $result = [
@@ -1475,7 +1475,7 @@ use Illuminate\Support\Facades\Hash;
                 "status" => 1
             ]);
         }
-        
+
 
 	public function customer_ontheway_order($customer_id)
         {
@@ -1495,13 +1495,13 @@ use Illuminate\Support\Facades\Hash;
 			'attributes' => json_decode($order->products->first()->attributes, true),
 			'quantity' => $order->products->first()->qty,
 			'order_id' => $order->id
-		];	
-		}            
+		];
+		}
             return response()->json([
                 "result" => $data,
                 "status" => 1
             ]);
-            
+
         }
 
 
@@ -1523,13 +1523,13 @@ use Illuminate\Support\Facades\Hash;
 			'attributes' => json_decode($order->products->first()->attributes, true),
 			'quantity' => $order->products->first()->qty,
 			'order_id' => $order->id
-		];	
-		}            
+		];
+		}
             return response()->json([
                 "result" => $data,
                 "status" => 1
             ]);
-            
+
         }
 
 	public function waiting_orders($customer_id)
@@ -1550,13 +1550,13 @@ use Illuminate\Support\Facades\Hash;
 			'attributes' => json_decode($order->products->first()->attributes, true),
 			'quantity' => $order->products->first()->qty,
 			'order_id' => $order->id
-		];	
-		}            
+		];
+		}
             return response()->json([
                 "result" => $data,
                 "status" => 1
             ]);
-            
+
         }
 
 
@@ -1578,13 +1578,13 @@ use Illuminate\Support\Facades\Hash;
 			'attributes' => json_decode($order->products->first()->attributes, true),
 			'quantity' => $order->products->first()->qty,
 			'order_id' => $order->id
-		];	
-		}            
+		];
+		}
             return response()->json([
                 "result" => $data,
                 "status" => 1
             ]);
-            
+
         }
 
 	public function cancelled_orders($customer_id)
@@ -1605,13 +1605,13 @@ use Illuminate\Support\Facades\Hash;
 			'attributes' => json_decode($order->products->first()->attributes, true),
 			'quantity' => $order->products->first()->qty,
 			'order_id' => $order->id
-		];	
-		}            
+		];
+		}
             return response()->json([
                 "result" => $data,
                 "status" => 1
             ]);
-            
+
         }
 
 
@@ -1633,23 +1633,23 @@ use Illuminate\Support\Facades\Hash;
 			'attributes' => json_decode($order->products->first()->attributes, true),
 			'quantity' => $order->products->first()->qty,
 			'order_id' => $order->id
-		];	
-		}            
+		];
+		}
             return response()->json([
                 "result" => $data,
                 "status" => 1
             ]);
-            
+
         }
 
-        
+
 
 
 
 
         public function customer_completed_order($customer_id)
         {
-        
+
             $orders = \DB::table('orders')
             ->select('brands.brand_name', 'brands.brand_image', 'products.product_name', 'products.id as product_id', 'orders.id','orders.created_at as ordered_at', 'orders.completed_at', 'orders.total', 'products.brand_id', 'products.vendor_id','products.variants')
             ->leftJoin('order_products', 'order_products.order_id', '=', 'orders.id')
@@ -1657,7 +1657,7 @@ use Illuminate\Support\Facades\Hash;
             ->leftJoin('brands', 'brands.id', '=', 'products.brand_id')
                       ->where('orders.status', 6)
             ->where('customer_id', $customer_id)->get();
-            
+
             foreach($orders as $order)
             {
                 //$order->completed_at =now()->format('Y-m-d H:i:s');
@@ -1667,10 +1667,10 @@ use Illuminate\Support\Facades\Hash;
                 "result" => $orders,
                 "status" => 1
             ]);
-            
+
         }
-        
-        
+
+
         public function customer_cancelled_order($customer_id)
         {
             $orders = \DB::table('orders')
@@ -1681,35 +1681,35 @@ use Illuminate\Support\Facades\Hash;
             ->where('orders.status', '=', 5)
             ->where('orders.customer_id', '=', $customer_id)
             ->get();
-            
+
             foreach($orders as $order)
             {
-               
+
                 $order->brand_image = $order->brand_image;
                 $order->completed_at =now()->format('Y-m-d H:i:s');
                 $order->product_image = ProductImage::where('product_id', $order->product_id)->first()->product_image;
             }
-            
+
             return response()->json([
                 "result" => $orders,
                 "status" => 1
             ]);
         }
-        
-       
-        
-        
+
+
+
+
         public function cards($customer_id)
         {
             $customer = Customer::find($customer_id);
-            
+
              return response()->json([
                 "message" => 'success',
                 "result" => is_null($customer->cards) ? [] : json_decode($customer->cards),
                 "status" => 1
             ]);
         }
-        
+
         public function add_card(Request $request)
         {
             $validator = Validator::make($request->all(), [
@@ -1722,27 +1722,27 @@ use Illuminate\Support\Facades\Hash;
             if ($validator->fails()) {
                 return $this->sendError($validator->errors());
             }
-            
+
             $customer = Customer::find($request->customer_id);
-            
+
             $cards = is_null($customer->cards) ? [] : json_decode($customer->cards);
-           
+
             $cards[] = [
                 'card_number' => $request->card_number,
                 'expire_date' => $request->expire_date,
                 'title' => $request->title
-                ]; 
-                
+                ];
+
             $customer->cards = $cards;
             $customer->save();
-            
+
              return response()->json([
                 "message" => 'success',
                 "result" => $customer->cards,
                 "status" => 1
             ]);
         }
-        
+
         public function set_location(Request $request)
         {
             $validator = Validator::make($request->all(), [
@@ -1754,28 +1754,28 @@ use Illuminate\Support\Facades\Hash;
             if ($validator->fails()) {
                 return $this->sendError($validator->errors());
             }
-            
+
             Customer::find($request->customer_id)->update([
-                'location' => json_encode(['lat'=> $request->lat, 'long'=> $request->long]) 
+                'location' => json_encode(['lat'=> $request->lat, 'long'=> $request->long])
                 ]);
-            
+
               return response()->json([
                 "result" => 'success',
                 "status" => 1
             ]);
         }
-        
+
       public function get_location($customer_id)
       {
           $customer = Customer::find($customer_id);
           $res = json_decode($customer->location, true);
-                
+
            return response()->json([
                 "result" => $res,
                 "status" => 1
-            ]);      
+            ]);
       }
-      
+
       public function create_order(Request $request)
       {
            $input = $request->all();
@@ -1797,12 +1797,12 @@ use Illuminate\Support\Facades\Hash;
             if ($validator->fails()) {
                  return $this->sendError($validator->errors(), 422);
             }
-            
+
             $product = Product::findOrFail($request->product_id);
             $commission = DB::table('app_settings')->value('referral_commission');
             $vendor = Vendor::find($product->vendor_id);
 
-           
+
             $lat_from = $vendor->warehouse_address['lat'];
             $long_from =  $vendor->warehouse_address['long'];
             $lat_to = $input['end_point_delivery_lat'];
@@ -1817,9 +1817,9 @@ use Illuminate\Support\Facades\Hash;
             $input['distance'] = $this->distance($lat_from, $long_from, $lat_to, $long_to, 'K');
             $input['delivery_amount'] = $input['distance'] * intval(AppSetting::where('id',1)->value('delivery_charge'));
            // $input['end_point_delivery'] = $input['end_point_delivery'][0];
-           
+
             $input['status'] = 1;
-    
+
           // dd($input);
 
             $order = Order::create($input);
@@ -1835,8 +1835,8 @@ use Illuminate\Support\Facades\Hash;
             }
 
 
-    
-    
+
+
             $order_product = [];
             $order_product['order_id'] = $order->id;
             $order_product['product_id'] = $product->id ;
@@ -1847,16 +1847,16 @@ use Illuminate\Support\Facades\Hash;
             $order_product['product_image'] = \DB::table('product_images')->where('product_id', $product->id)->first()->product_image;
             $order_product['attributes'] = json_encode($request->input('attributes'));
             $order_product['images'] = json_encode($request->input('images'));
-           
+
             $tax_percent = Product::find($input['product_id'])->subcategory->tax == null? 1 :  Product::find($input['product_id'])->subcategory->tax;
-        
+
             $order_product['tax'] = ($input['price'] / 100) * $tax_percent;
-            
-  
+
+
             OrderProduct::create($order_product);
-    
-    
-    
+
+
+
             if($request->payment_type == 'click')
             {
                 $digest = sha1(time() . 'GjlQsHjMjJUDl');
@@ -1873,23 +1873,23 @@ use Illuminate\Support\Facades\Hash;
                 ]);
 
             }
-    
-    
+
+
             $message = [
-                        "title" => "Новое сообщение", 
+                        "title" => "Новое сообщение",
                         "body" => "У вас новый заказ {$order->id}. Перейдите на страницу моих заказов, чтобы увидеть"
                     ];
             $API_KEY = env('VENDOR_KEY');
             $this->sendNotification($vendor->fcm_token, $message, $API_KEY);
-    
-    
+
+
             return response()->json([
                             "message" => 'success',
                             "status" => 1
-                        ]); 
-    
+                        ]);
+
       }
-      
+
       public static function get_distance(
         $latitudeFrom, $longitudeFrom, $latitudeTo, $longitudeTo, $earthRadius = 6371000)
       {
@@ -1898,16 +1898,16 @@ use Illuminate\Support\Facades\Hash;
         $lonFrom = deg2rad($longitudeFrom);
         $latTo = deg2rad($latitudeTo);
         $lonTo = deg2rad($longitudeTo);
-      
+
         $lonDelta = $lonTo - $lonFrom;
         $a = pow(cos($latTo) * sin($lonDelta), 2) +
           pow(cos($latFrom) * sin($latTo) - sin($latFrom) * cos($latTo) * cos($lonDelta), 2);
         $b = sin($latFrom) * sin($latTo) + cos($latFrom) * cos($latTo) * cos($lonDelta);
-      
+
         $angle = atan2(sqrt($a), $b);
         return $angle * $earthRadius;
       }
-      
+
             function distance($lat1, $lon1, $lat2, $lon2, $unit) {
         if (($lat1 == $lat2) && ($lon1 == $lon2)) {
           return 0;
@@ -1919,7 +1919,7 @@ use Illuminate\Support\Facades\Hash;
           $dist = rad2deg($dist);
           $miles = $dist * 60 * 1.1515;
           $unit = strtoupper($unit);
-      
+
           if ($unit == "K") {
             return ($miles * 1.609344);
           } else if ($unit == "N") {
@@ -1929,43 +1929,43 @@ use Illuminate\Support\Facades\Hash;
           }
         }
       }
-      
-      
-      
-      
+
+
+
+
       public function getProductVariants($product_id)
       {
          $variants = \DB::table('m_product_variants')
          ->where('product_id', $product_id)
          ->get(['id', 'sku_id']);
-          
+
            return response()->json([
                             "result" => $variants,
                             "message" => 'success',
                             "status" => 1
-                        ]); 
-          
+                        ]);
+
       }
-      
+
       public function getAttributesBySku($product_id)
       {
-          
+
           $product = Product::find($product_id);
           $option = \DB::table('m_product_options')
           ->select('m_options.option_name')
           ->where('product_id', $product_id)
           ->join('m_options', 'm_options.id', '=', 'm_product_options.option_id')
           ->first()->option_name;
-          
-        
+
+
     //   return response()->json([
     //                             "result" => $option,
     //                             "message" => 'success',
     //                             "status" => 1
-    //                         ]); 
-                            
-                            
-                            
+    //                         ]);
+
+
+
       if($product->var_type == 1)
       {
           $result = \DB::table('m_variants_values')
@@ -1973,12 +1973,12 @@ use Illuminate\Support\Facades\Hash;
           ->join('m_option_values', 'm_option_values.id', '=', 'm_variants_values.value_id')
           ->join('m_options', 'm_options.id', '=', 'm_variants_values.option_id')
           ->get(['option_name', 'value_name', 'image', 'status', 'price', 'variant_id','m_variants_values.option_id', 'm_variants_values.value_id',]);
-          
+
        foreach($result as $res)
        {
            $res->images = ProductImage::where('sku_id', $res->variant_id)->where('product_id', $product_id)->get(['product_image', 'is_main']);
        }
-       
+
       }
       elseif($product->var_type == 2)
       {
@@ -1990,45 +1990,45 @@ use Illuminate\Support\Facades\Hash;
           ->join('m_options', 'm_options.id', '=', 'm_variants_values.option_id')
           ->groupBy('value_id', 'm_option_values.value_name', 'option_id', 'option_name')
           ->get();
-          
-          
+
+
       }
-      
+
         $result = [
          "option_name" => $option,
          "list" => $result
        ];
-      
+
          return response()->json([
                                 "result" => $result,
                                 "message" => 'success',
                                 "status" => 1
-                            ]); 
-          
+                            ]);
+
       }
-      
-      
-      
+
+
+
       public function getSecondAttributes($product_id, $option_id, $value_id)
       {
-       
+
            $option = \DB::table('m_product_options')
           ->select('m_options.option_name')
            ->where('product_id', $product_id)
           ->orderByDesc('m_product_options.id')
           ->join('m_options', 'm_options.id', '=', 'm_product_options.option_id')
           ->first()->option_name;
-          
-    
-      
+
+
+
       $parent_variant_ids = \DB::table('m_variants_values')
           ->where('m_variants_values.product_id', '=', $product_id)
           ->where('m_variants_values.option_id', '=', $option_id)
           ->where('m_variants_values.value_id', '=', $value_id)
           ->pluck('variant_id');
-          
-    
-        
+
+
+
       $result = \DB::table('m_variants_values')
           ->where('m_variants_values.product_id', '=', $product_id)
           ->join('m_option_values', 'm_option_values.id', '=', 'm_variants_values.value_id')
@@ -2037,66 +2037,66 @@ use Illuminate\Support\Facades\Hash;
           ->where('m_variants_values.value_id', '!=', $value_id)
           ->whereIn('variant_id', $parent_variant_ids)
           ->get(['option_name', 'm_variants_values.option_id', 'm_variants_values.value_id', 'value_name', 'image', 'm_variants_values.status', 'price' ,'variant_id']);
-          
-     
-       
+
+
+
       foreach($result as $res)
       {
           $res->images = ProductImage::where('sku_id', $res->variant_id)->where('product_id', $product_id)->get(['product_image', 'is_main']);
       }
-       
+
        $result = [
          "option_name" => $option,
          "list" => $result
        ];
-          
-          
+
+
        return response()->json([
                                 "result" => $result,
                                 "message" => 'success',
                                 "status" => 1
-                            ]); 
+                            ]);
       }
-      
-      
-    
-    
+
+
+
+
     // public function searchPage($text = null)
     // {
 
     //     if($text != null)
     //     {
     //      $exploded = explode(' ', $text);
-            
-         
-                             
+
+
+
     //       $products = Product::active()->where(function ($query) use($exploded) {
     //       foreach($exploded as $text) {
     //          $query->orWhere('product_name', 'like', "%$text%");
     //       }
     //   })->paginate(30);
-       
-            
+
+
     //          return response()->json([
     //         "result" => $products,
     //         "message" => 'success',
     //         "status" => 1
-    //     ]); 
-        
-        
-        
+    //     ]);
+
+
+
     //         $products = Product::where('status', 1)->orderByDesc('created_at')->with('images');
-           
-          
+
+
     //       foreach($exploded as $item)
     //       {
-                 
+
     //       $products =  Product::where(function ($query) {
     //       foreach(\Input::get('myselect') as $select) {
     //          $query->orWhere('id', '=', $select);
     //       }
     //   })->get();
-       
+
     //         //   $products->where(function ($query) use($text, $item) {
     //         //   $query->where('product_name', 'like', "%$text%")
     //         //          ->orWhere('product_name', 'like', "%$item%");
@@ -2106,44 +2106,46 @@ use Illuminate\Support\Facades\Hash;
     //     }else{
     //       $products =  Product::where('status', 1)->orderByDesc('created_at')->with('images')->paginate(30);
     //     }
-        
-        
+
+
     //     return response()->json([
     //         "result" => $products,
     //         "message" => 'success',
     //         "status" => 1
-    //     ]); 
+    //     ]);
     // }
-    
-    public function searchPage($text = null)
+
+    public function searchPage($text)
     {
-        $result = Product::where('product_name', 'like', "%$text%")->orderByDesc('created_at')->take(10)->get()->toArray();
-        
+
+
+      return  $result = Product::where('product_name', 'like', "%$text%")->orderByDesc('created_at')->take(10)->get()->toArray();
+
         if(count($result) == 0)
         {
             $category = Category::where('category_name', 'like', "%$text%")->first();
-          
+
             if($category){
                   $result = Product::where('subcategory_id', $category->id)->take(10)->orderByDesc('created_at')->get()->toArray();
             }
         }
-        
+
         if(count($result) < 10)
         {
               if($result != null){
                 $subcategory_id = $result[0]['subcategory_id'];
-                
+
                 $merge = Product::where('subcategory_id', $subcategory_id)->take(10)->orderByDesc('created_at')->get()->toArray();
                 $result = array_merge($result, $merge);
               }
         }
-        
+
           if(count($result) == 0)
           {
             $result = $res = Product::take(10)->whereJsonContains('tags',$text)->get()->toArray();
 
 		if(count($result) < 5 && count($result) > 0)
-	        {	
+	        {
 		    $merge = Product::where('subcategory_id', $result[0]['subcategory_id'])->take(10)->orderByDesc('created_at')->get()->toArray();
  		    $result = array_merge($result, $merge);
 		}
@@ -2155,9 +2157,9 @@ use Illuminate\Support\Facades\Hash;
             "result" => ['data' => $result] ,
             "message" => 'success',
             "status" => 1
-        ]); 
+        ]);
     }
-    
+
     public function getSearchHistory($user_id)
     {
         $result = \DB::table('search_history')->where('user_id', $user_id)->orderByDesc('id')->paginate(10);
@@ -2165,9 +2167,9 @@ use Illuminate\Support\Facades\Hash;
                                 "result" => $result,
                                 "message" => 'success',
                                 "status" => 1
-                            ]); 
+                            ]);
     }
-    
+
     public function setSearchHistory(Request $request)
     {
          $validator = Validator::make($request->all(), [
@@ -2178,18 +2180,18 @@ use Illuminate\Support\Facades\Hash;
          if ($validator->fails()) {
               return $this->sendError($validator->errors());
          }
-         
+
          \DB::table('search_history')->insert([
              'user_id' => $request->user_id,
              'text' => $request->text
              ]);
-             
+
         return response()->json([
             "message" => 'success',
             "status" => 1
-        ]); 
+        ]);
     }
-    
+
     public function removeSearchHistory(Request $request)
     {
           $validator = Validator::make($request->all(), [
@@ -2200,26 +2202,26 @@ use Illuminate\Support\Facades\Hash;
          if ($validator->fails()) {
               return $this->sendError($validator->errors());
          }
-         
+
          \DB::table('search_history')->where('user_id', $request->user_id)
          ->where('text', $request->text)
          ->delete();
-             
+
         return response()->json([
             "message" => 'success',
             "status" => 1
-        ]); 
+        ]);
     }
-    
+
     public function searchInput($text)
     {
          return response()->json([
             "result" => Product::where('status', 1)->orderByDesc('created_at')->where('product_name', 'LIKE', "%$text%")->take(10)->pluck('product_name'),
             "message" => 'success',
             "status" => 1
-        ]); 
+        ]);
     }
-    
+
     public function searchResult($text)
     {
         if(strlen($text) < 3){
@@ -2231,52 +2233,52 @@ use Illuminate\Support\Facades\Hash;
          ],
             "message" => 'success',
             "status" => 1
-        ]); 
+        ]);
         }
-        
+
       // cyril   $res = \DB::table('products')->whereJsonContains('tags',$text)->get();
-        
-         
-         
+
+
+
          // latin $res = \DB::table('products')->whereRaw("lower(tags)  like ?", ["%".strtolower($text)."%"])->get();
-        
-       
+
+
        if(preg_match('/[А-Яа-яЁё]/u', $text))
        {
            $res = \DB::table('products')->whereJsonContains('tags',$text)->get();
        }else{
            $res = \DB::table('products')->whereRaw("lower(tags)  like ?", ["%".strtolower($text)."%"])->get();
        }
-      
+
         $tags = [];
-      
+
         foreach($res as $res){
             $array = json_decode($res->tags);
-           
+
             $tags[] = array_values(preg_grep("/^$text.*/i", $array));
         }
-        
-      
+
+
         $category = Category::where('category_name', 'like', '%' . $text . '%')->with('parent')->get()->toArray();
-       
+
         if(count($category) === 0 ){
             $category = Product::where('product_name', 'like', '%' . $text . '%')->with('subcategory')->take(4)->groupBy('subcategory_id')->select('id', 'product_name', 'subcategory_id')->get();
-            
+
         }
-        
+
         $result = [
          'category' => $category,
          'brand' => Brand::where('brand_name', 'like', '%' . $text . '%')->get(),
          'tags' =>  array_slice( array_unique(\Arr::collapse($tags)), 0, 10)
         ];
-        
-        
+
+
          return response()->json([
             "result" => $result,
             "message" => 'success',
             "status" => 1
-        ]); 
-        
+        ]);
+
         //
     }
 
@@ -2287,7 +2289,7 @@ use Illuminate\Support\Facades\Hash;
             "result" => Category::whereNull('parent_id')->get(['id', 'category_name']),
             "message" => 'success',
             "status" => 1
-        ]); 
+        ]);
 	}
 
 	public function subcategoriesList($category_id)
@@ -2296,7 +2298,7 @@ use Illuminate\Support\Facades\Hash;
             "result" => Category::where('parent_id', $category_id)->get(['id', 'category_name', 'tax']),
             "message" => 'success',
             "status" => 1
-        ]); 
+        ]);
 	}
 
        	public function brandsList()
@@ -2305,11 +2307,11 @@ use Illuminate\Support\Facades\Hash;
             "result" => Brand::get(['id', 'brand_name']),
             "message" => 'success',
             "status" => 1
-        ]); 
+        ]);
 	}
 
-    
-    
 
-    
+
+
+
     }
